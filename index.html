@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axle Puzzle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <style>
+  body {
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 20px;
+  }
+
+#app {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 90%;
+  max-width: 500px;
+  display: flex; /* Enable flexbox for vertical layout */
+  flex-direction: column; /* Stack children vertically */
+  min-height: 100%; /* Ensure the app container takes full height */
+  box-sizing: border-box;
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+#puzzle-container {
+  display: grid;
+  grid-template-columns: repeat(4, 80px);
+  grid-gap: 10px;
+  margin-bottom: 20px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+  .axle-button {
+    width: 80px;
+    height: 80px;
+    font-size: 24px;
+    cursor: pointer;
+    border: 2px solid black;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    background-color: #e0e0e0;
+    position: relative;
+    padding: 12px;
+  }
+
+  .axle-button:hover {
+    /* Removed hover effect */
+  }
+
+  .axle-rotated {
+    background-color: #b0e0b0;
+  }
+
+  .axle-blocked {
+    background-color: #e0e0e0;
+  }
+
+  .axle-unblocked {
+    background-color: #b0e0b0;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: black;
+    position: absolute;
+  }
+
+  .dot-up {
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .dot-right {
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+  }
+
+  .dot-down {
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .dot-left {
+    top: 50%;
+    left: 4px;
+    transform: translateY(-50%);
+  }
+
+  .axle-button > span {
+    position: relative;
+    z-index: 1;
+  }
+
+p {
+  color: #555;
+  margin-bottom: 10px;
+}
+
+#game-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+#reset-button, #new-game-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #4CAF50;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#new-game-button {
+  background-color: #008CBA;
+}
+
+#reset-button:hover, #new-game-button:hover {
+  background-color: #45a049;
+}
+
+#message-box {
+  margin-top: 20px;
+  color: #222;
+  font-size: 16px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+#size-selection {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+#size-selection button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  background-color: #e0e0e0;
+  color: #333;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#size-selection button:hover {
+  background-color: #ccc;
+}
+
+#puzzle-container {
+  display: grid;
+  grid-template-columns: repeat(4, 80px);
+  grid-gap: 10px;
+  margin-bottom: 20px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#row-col-inputs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+#row-col-inputs input {
+  width: 50px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  text-align: center;
+}
+
+#footer {
+  margin-top: auto; /* Push footer to the bottom */
+  text-align: center;
+  font-size: 0.8em;
+  color: #888;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+}
+  </style>
+  </head>
+  <body>
+  <div id="app">
+  <h1>Axle Puzzle</h1>
+  <div id="row-col-inputs">
+  <span>Rows:</span>
+  <input type="number" id="rows-input" value="4" min="2" max="6" />
+  <span>Cols:</span>
+  <input type="number" id="cols-input" value="4" min="2" max="6" />
+  </div>
+  <div id="size-selection" style="display: none;">
+  <button data-size="3">3x3</button>
+  <button data-size="4">4x4</button>
+  <button data-size="5">5x5</button>
+  </div>
+  <div id="puzzle-container"></div>
+  <p>Click an axle to rotate it.</p>
+  <div id="game-controls">
+  <button id="new-game-button">New Game</button>
+  </div>
+
+  <div id="message-box"></div>
+  <div id="footer">
+  Designed by <a href="https://joshmermelstein.com">Josh Mermelstein</a>, and Gemini
+  </div>
+  </div>
+
+  <script type="text/babel">
+  const { useState, useEffect } = React;
+  const { createRoot } = ReactDOM;
+
+  const Direction = {
+    Up: 0,
+    Right: 1,
+    Down: 2,
+    Left: 3,
+  };
+
+  const OrientationSymbols = ["↑", "→", "↓", "←"];
+
+  class Axle {
+    constructor(orientation, blocks) {
+      this.orientation = orientation;
+      this.blocks = blocks;
+    }
+
+    rotatedClockwise() {
+      const newOrientation = (this.orientation + 1) % 4;
+      const newBlocks = [
+        this.blocks[Direction.Left],
+        this.blocks[Direction.Up],
+        this.blocks[Direction.Right],
+        this.blocks[Direction.Down],
+      ];
+      return new Axle(newOrientation, newBlocks);
+    }
+
+    rotatedCounterClockwise() {
+      const newOrientation = (this.orientation + 3) % 4;
+      const newBlocks = [
+        this.blocks[Direction.Right],
+        this.blocks[Direction.Down],
+        this.blocks[Direction.Left],
+        this.blocks[Direction.Up],
+      ];
+      return new Axle(newOrientation, newBlocks);
+    }
+
+    rotated180() {
+      const newOrientation = (this.orientation + 2) % 4;
+      const newBlocks = [
+        this.blocks[Direction.Down],
+        this.blocks[Direction.Left],
+        this.blocks[Direction.Up],
+        this.blocks[Direction.Right],
+      ];
+      return new Axle(newOrientation, newBlocks);
+    }
+
+    blocksDirection(direction) {
+      return this.blocks[direction];
+    }
+
+    toString() {
+      return OrientationSymbols[this.orientation];
+    }
+
+    rotateRandomly() {
+      const rotations = [this.rotatedClockwise(), this.rotatedCounterClockwise(), this.rotated180()];
+      const randomIndex = Math.floor(Math.random() * rotations.length);
+      return rotations[randomIndex];
+    }
+  }
+
+  // Assigns each axel a random (unique) number, and only allows blocking from
+  // higher number to lower numbers. This prevents cycles of blockage when
+  // generating random puzzles.
+  class TopoWeight {
+    constructor(rows, cols, grid) {
+      this.rows = rows;
+      this.cols = cols;
+      this.oob = rows * cols / 4;
+      this.grid = Array.from({ length: rows * cols }, (_, i) => i + 1);
+      let currentIndex = rows * cols;
+      while (currentIndex != 0) {
+        let randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [this.grid[currentIndex], this.grid[randomIndex]] = [this.grid[randomIndex], this.grid[currentIndex]];
+      }
+    }
+
+    get(r, c) {
+      if (r < this.rows && c < this.cols && r >= 0 && c >= 0) {
+        return this.grid[r * this.cols + c];
+      }
+      // Adding a blocker pointed out-of-bounds never causes cycles, but we don't
+      // want to do it too much.
+      return this.oob;
+    }
+
+    shouldBlock(r1, c1, r2, c2) {
+      if (this.get(r1, c1) < this.get(r2, c2)) {
+        return false;
+      }
+      return Math.random() < 0.75;
+    }
+
+    blockers(r,c) {
+      let ret = [
+        this.shouldBlock(r, c, r-1, c),
+        this.shouldBlock(r, c, r, c+1),
+        this.shouldBlock(r, c, r+1, c),
+        this.shouldBlock(r, c, r, c-1),
+      ]
+      if (ret.every(v => v === true)) {
+        ret[0] = false;
+      }
+      return ret;
+    }
+  }
+
+  class PuzzleState {
+    constructor(rows, cols, grid) {
+      this.rows = rows;
+      this.cols = cols;
+      this.grid = grid;
+    }
+
+    getAxle(r, c) {
+      if (r < this.rows && c < this.cols) {
+        return this.grid[r * this.cols + c];
+      }
+      return null;
+    }
+
+    setAxle(r, c, axle) {
+      if (r < this.rows && c < this.cols) {
+        this.grid[r * this.cols + c] = axle;
+      }
+    }
+
+    canRotate(r, c) {
+      const directions = [Direction.Up, Direction.Right, Direction.Down, Direction.Left];
+      const drs = [-1, 0, 1, 0];
+      const dcs = [0, 1, 0, -1];
+
+      for (let i = 0; i < directions.length; i++) {
+        const direction = directions[i];
+        const dr = drs[i];
+        const dc = dcs[i];
+        const nr = r + dr;
+        const nc = c + dc;
+
+        if (nr >= 0 && nr < this.rows && nc >= 0 && nc < this.cols) {
+          const neighborAxle = this.getAxle(nr, nc);
+          const oppositeDirection = (direction + 2) % 4;
+          if (neighborAxle.blocksDirection(oppositeDirection)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    getRotatableAxles() {
+      const rotatableAxles = [];
+      for (let r = 0; r < this.rows; r++) {
+        for (let c = 0; c < this.cols; c++) {
+          if (this.canRotate(r, c)) {
+            rotatableAxles.push({ row: r, col: c });
+          }
+        }
+      }
+      return rotatableAxles;
+    }
+
+    shuffle() {
+      for (let i = 0; i < 100 * this.rows * this.cols; i++) {
+        let rotatableAxles = this.getRotatableAxles();
+        const randomIndex = Math.floor(Math.random() * rotatableAxles.length);
+        const { row, col } = rotatableAxles[randomIndex];
+        let axle = this.getAxle(row, col);
+        if (axle) {
+          axle = axle.rotateRandomly();
+          this.setAxle(row, col, axle);
+        }
+      }
+    }
+
+    clone() {
+      const newGrid = this.grid.map(axle => new Axle(axle.orientation, [...axle.blocks]));
+      return new PuzzleState(this.rows, this.cols, newGrid);
+    }
+
+    isSolved() {
+      for (let r = 0; r < this.rows; r++) {
+        for (let c = 0; c < this.cols; c++) {
+          const axle = this.getAxle(r, c);
+          if (axle.orientation !== 0) { // 0 represents Up
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+  }
+
+  function generateRandomState(rows, cols) {
+    let topo_weights = new TopoWeight(rows, cols);
+    const grid = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        grid.push(new Axle(0, topo_weights.blockers(r,c)));
+      }
+    }
+    const puzzle = new PuzzleState(rows, cols, grid);
+    puzzle.shuffle();
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        puzzle.getAxle(r,c).orientation = 0;
+      }
+    }
+    puzzle.shuffle();
+    return puzzle;
+  }
+
+  const App = () => {
+    const [rows, setRows] = useState(4);
+    const [cols, setCols] = useState(4);
+    const [initialPuzzleState, setInitialPuzzleState] = useState(generateRandomState(4, 4));
+    const [puzzleState, setPuzzleState] = useState(initialPuzzleState);
+    const [message, setMessage] = useState("Click squares to rotate them. Squares are blocked if a neighbor's dot points at them. You win when all arrows point up.");
+
+    useEffect(() => {
+      setPuzzleState(initialPuzzleState);
+    }, [initialPuzzleState]);
+
+    const resetPuzzle = () => {
+      const rowsInput = document.getElementById('rows-input');
+      const colsInput = document.getElementById('cols-input');
+      const newRows = parseInt(rowsInput.value);
+      const newCols = parseInt(colsInput.value);
+      if(newRows >=2 && newRows <=6 && newCols >= 2 && newCols <=6){
+        setRows(newRows);
+        setCols(newCols);
+        const newState = generateRandomState(newRows, newCols);
+        setInitialPuzzleState(newState);
+        setPuzzleState(newState);
+        setMessage("Puzzle Reset");
+      }
+      else{
+        setMessage("Rows and Cols must be between 2 and 6.");
+      }
+
+    };
+
+    const startNewGame = () => {
+      const rowsInput = document.getElementById('rows-input');
+      const colsInput = document.getElementById('cols-input');
+      const newRows = parseInt(rowsInput.value);
+      const newCols = parseInt(colsInput.value);
+      if(newRows >=2 && newRows <=6 && newCols >= 2 && newCols <=6){
+        setRows(newRows);
+        setCols(newCols);
+        const newState = generateRandomState(newRows, newCols);
+        setInitialPuzzleState(newState);
+        setPuzzleState(newState);
+        setMessage("New Game Started!");
+      }
+      else{
+        setMessage("Rows and Cols must be between 2 and 6.");
+      }
+    };
+
+    useEffect(() => {
+      const puzzleContainer = document.getElementById('puzzle-container');
+      if (puzzleContainer) {
+        puzzleContainer.style.gridTemplateColumns = `repeat(${rows}, 80px)`;
+      }
+    }, [rows, cols]);
+
+    const handleInputChange = () => {
+      const rowsInput = document.getElementById('rows-input');
+      const colsInput = document.getElementById('cols-input');
+      const newRows = parseInt(rowsInput.value);
+      const newCols = parseInt(colsInput.value);
+
+      if (newRows >= 2 && newRows <= 6 && newCols >= 2 && newCols <= 6) {
+        setRows(newRows);
+        setCols(newCols);
+        const newState = generateRandomState(newRows, newCols);
+        setInitialPuzzleState(newState);
+        setPuzzleState(newState);
+        setMessage(`Puzzle Size Updated: ${newRows}x${newCol}`);
+        const puzzleContainer = document.getElementById('puzzle-container');
+        if (puzzleContainer) {
+          puzzleContainer.style.gridTemplateColumns = `repeat(${newCols}, 80px)`;
+        }
+      } else {
+        setMessage("Rows and Cols must be between 2 and 6.");
+      }
+    };
+
+    const handleAxleClick = (r, c) => {
+      const newState = puzzleState.clone();
+      if (newState.canRotate(r, c)) {
+        const currentAxle = newState.getAxle(r, c);
+        const rotatedAxle = currentAxle.rotatedClockwise();
+        newState.setAxle(r, c, rotatedAxle);
+        setPuzzleState(newState);
+        setMessage("");
+        if (newState.isSolved()) {
+          setMessage("You Win!");
+        }
+      } else {
+        setMessage("Cannot Rotate Axle");
+      }
+    };
+
+    const renderPuzzle = () => {
+      const grid = [];
+      for (let r = 0; r < puzzleState.rows; r++) {
+        const row = [];
+        for (let c = 0; c < puzzleState.cols; c++) {
+          const axle = puzzleState.getAxle(r, c);
+          const buttonClass = `axle-button ${puzzleState.canRotate(r, c) ? 'axle-unblocked' : 'axle-blocked'}`;
+
+          const dots = [];
+          if (axle.blocksDirection(Direction.Up)) {
+            dots.push(<div key={`dot-up-${r}-${c}`} className="dot dot-up"></div>);
+          }
+          if (axle.blocksDirection(Direction.Right)) {
+            dots.push(<div key={`dot-right-${r}-${c}`} className="dot dot-right"></div>);
+          }
+          if (axle.blocksDirection(Direction.Down)) {
+            dots.push(<div key={`dot-down-${r}-${c}`} className="dot dot-down"></div>);
+          }
+          if (axle.blocksDirection(Direction.Left)) {
+            dots.push(<div key={`dot-left-${r}-${c}`} className="dot dot-left"></div>);
+          }
+
+          row.push(
+            <button
+            key={`${r}-${c}`}
+            className={buttonClass}
+            onClick={() => handleAxleClick(r, c)}
+
+            >
+            <span>{axle.toString()}</span>
+            {dots}
+            </button>
+          );
+        }
+        grid.push(<div key={`row-${r}`} style={{ display: 'flex' }}>{row}</div>);
+      }
+      return grid;
+    };
+
+    return (
+      <div>
+      <div id="row-col-inputs">
+      <span>Rows:</span>
+      <input type="number" id="rows-input" value={rows} min="2" max="6" onChange={handleInputChange} />
+      <span>Cols:</span>
+      <input type="number" id="cols-input" value={cols} min="2" max="6" onChange={handleInputChange}/>
+      </div>
+      {renderPuzzle()}
+      <div id="message-box">{message}</div>
+      <div id="game-controls">
+      <button id="new-game-button" onClick={startNewGame}>New Game</button>
+      </div>
+      <div id="footer">
+      Designed by <a href="https://joshmermelstein.com">Josh Mermelstein</a>, Coding by Gemini
+      </div>
+      </div>
+    );
+  };
+
+  const container = document.getElementById('app');
+  const root = createRoot(container);
+  root.render(<App />);
+  </script>
+  </body>
+  </html>
