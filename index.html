@@ -259,6 +259,49 @@ p {
   background-color: #4CAF50;
   color: white;
 }
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.spin-button {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    border: none;
+    background-color: #ddd;
+    color: #333;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    line-height: 0; /* Important for vertical centering */
+}
+
+.spin-button:hover {
+    background-color: #ccc;
+}
+
+.spin-button:disabled {
+    background-color: #eee;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
 </style>
 </head>
 <body>
@@ -355,10 +398,22 @@ class TopoWeight {
   constructor(rows, cols, mode) {
     this.rows = rows;
     this.cols = cols;
-    this.cardinal_probability = (mode == 'easy') ? 0.5 : 0.75;
-    this.diagonal_probability = (mode == 'hard') ? 0.25 : 0;
+    switch (mode) {
+      case 'easy':
+        this.cardinal_probability = 0.25;
+        this.diagonal_probability = 0;
+        break;
+      case 'normal':
+        this.cardinal_probability = 0.75;
+        this.diagonal_probability = 0;
+        break;
+      case 'hard':
+        this.cardinal_probability = 0.6;
+        this.diagonal_probability = 0.35;
+        break;
+    }
     this.oob = rows * cols / 4;
-    this.grid = Array.from({ length: rows * cols }, (_, i) => i + 1);
+    this.grid = Array.from({ length: rows * cols }, (_, i) => i);
     let currentIndex = rows * cols;
     while (currentIndex != 0) {
       let randomIndex = Math.floor(Math.random() * currentIndex);
@@ -384,7 +439,6 @@ class TopoWeight {
   }
 
   blockers(r,c) {
-    let cardinal_probability = 0.5;
     let cardinals = [
         this.shouldBlock(r, c, r-1, c, this.cardinal_probability),
         this.shouldBlock(r, c, r, c+1, this.cardinal_probability),
@@ -511,6 +565,7 @@ class PuzzleState {
   }
 }
 
+// TODO(jmerm): who is calling this so much?!
 function generateRandomState(rows, cols, mode) {
   let topo_weights = new TopoWeight(rows, cols, mode);
   const grid = [];
@@ -584,9 +639,27 @@ const App = () => {
     startNewGame();
   }
 
-  const handleInputChange = () => {
+  const handleInputChange = (source) => {
     const rowsInput = document.getElementById('rows-input');
     const colsInput = document.getElementById('cols-input');
+    let newRows = parseInt(rowsInput.value);
+    let newCols = parseInt(colsInput.value);
+
+    if (source === 'row-increment') {
+        newRows = Math.min(newRows + 1, 6);
+    } else if (source === 'row-decrement') {
+        newRows = Math.max(newRows - 1, 2);
+    }
+    else if (source === 'col-increment') {
+        newCols = Math.min(newCols + 1, 6);
+    }
+     else if (source === 'col-decrement') {
+        newCols = Math.max(newCols - 1, 2);
+    }
+
+    rowsInput.value = newRows.toString();
+    colsInput.value = newCols.toString();
+
     startNewGame();
   }
 
@@ -666,10 +739,18 @@ const App = () => {
         <button data-mode="hard" onClick={() => handleModeSelect('hard')}>Hard</button>
     </div>
     <div id="row-col-inputs">
-        <span>Rows:</span>
-        <input type="number" id="rows-input" value={rows} min="2" max="6" onChange={handleInputChange} />
-        <span>Cols:</span>
-        <input type="number" id="cols-input" value={cols} min="2" max="6" onChange={handleInputChange}/>
+        <div className="input-group">
+            <span>Rows:</span>
+            <button className="spin-button" id="row-decrement" onClick={() => handleInputChange('row-decrement')}>-</button>
+            <input type="number" id="rows-input" value={rows} min="2" max="6" onChange={() => handleInputChange('row')} />
+            <button className="spin-button" id="row-increment" onClick={() => handleInputChange('row-increment')}>+</button>
+        </div>
+        <div className="input-group">
+            <span>Cols:</span>
+            <button className="spin-button" id="col-decrement" onClick={() => handleInputChange('col-decrement')}>-</button>
+            <input type="number" id="cols-input" value={cols} min="2" max="6" onChange={() => handleInputChange('col')} />
+            <button className="spin-button" id="col-increment" onClick={() => handleInputChange('col-increment')}>+</button>
+        </div>
     </div>
     {renderPuzzle()}
     <div id="message-box">{message}</div>
