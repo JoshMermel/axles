@@ -31,21 +31,12 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  box-sizing: border-box;
+  box-sizing: content-box;
 }
 
 h1 {
   color: #333;
   margin-bottom: 20px;
-}
-
-#puzzle-container {
-  display: grid;
-  grid-template-columns: repeat(4, 80px);
-  grid-gap: 10px;
-  margin-bottom: 20px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .axle-button {
@@ -138,6 +129,12 @@ p {
   margin-bottom: 10px;
 }
 
+#puzzle-box {
+  display:grid;
+  justify-content: center;
+  align-items: center;
+}
+
 #game-controls {
   display: flex;
   justify-content: center;
@@ -146,7 +143,7 @@ p {
   margin-top: 20px;
 }
 
-#reset-button, #new-game-button {
+#new-game-button {
   padding: 10px 20px;
   border: none;
   border-radius: 5px;
@@ -161,7 +158,7 @@ p {
   background-color: #008CBA;
 }
 
-#reset-button:hover, #new-game-button:hover {
+#new-game-button:hover {
   background-color: #45a049;
 }
 
@@ -196,15 +193,6 @@ p {
 
 #size-selection button:hover {
   background-color: #ccc;
-}
-
-#puzzle-container {
-  display: grid;
-  grid-template-columns: repeat(4, 80px);
-  grid-gap: 10px;
-  margin-bottom: 20px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 #row-col-inputs {
@@ -305,7 +293,9 @@ input[type=number] {
 </style>
 </head>
 <body>
+  <StrictMode>
   <div id="app"></div>
+  </StrictMode>
 </body>
 
 <script type="text/babel">
@@ -391,7 +381,7 @@ class Axle {
   }
 }
 
-// Assigns each axel a random (unique) number, and only allows blocking from
+// Assigns each axle a random (unique) number, and only allows blocking from
 // higher number to lower numbers. This prevents cycles of blockage when
 // generating random puzzles.
 class TopoWeight {
@@ -400,7 +390,7 @@ class TopoWeight {
     this.cols = cols;
     switch (mode) {
       case 'easy':
-        this.cardinal_probability = 0.25;
+        this.cardinal_probability = 0.4;
         this.diagonal_probability = 0;
         break;
       case 'normal':
@@ -565,7 +555,7 @@ class PuzzleState {
   }
 }
 
-// TODO(jmerm): who is calling this so much?!
+// TODO(jmerm): figure out why this is called on every click.
 function generateRandomState(rows, cols, mode) {
   let topo_weights = new TopoWeight(rows, cols, mode);
   const grid = [];
@@ -592,10 +582,6 @@ const App = () => {
   const [puzzleState, setPuzzleState] = useState(generateRandomState(4, 4, 'normal'));
   const [message, setMessage] = useState("Click squares to rotate them 90 degrees clockwise. Squares are blocked if a neighbor's dot points at them. You win when all arrows point up.");
 
-  useEffect(() => {
-    setPuzzleState(puzzleState);
-  }, [puzzleState]);
-
   const startNewGame = () => {
     const rowsInput = document.getElementById('rows-input');
     const colsInput = document.getElementById('cols-input');
@@ -620,13 +606,6 @@ const App = () => {
     }
   };
 
-  useEffect(() => {
-    const puzzleContainer = document.getElementById('puzzle-container');
-    if (puzzleContainer) {
-      puzzleContainer.style.gridTemplateColumns = `repeat(${rows}, 80px)`;
-    }
-  }, [rows, cols]);
-
   const handleModeSelect = (mode) => {
     setGameMode(mode);
     const buttons = document.querySelectorAll('#mode-selection button');
@@ -639,28 +618,33 @@ const App = () => {
     startNewGame();
   }
 
-  const handleInputChange = (source) => {
+  const handleRowChange = (source) => {
     const rowsInput = document.getElementById('rows-input');
+    let oldRows = parseInt(rowsInput.value);
+    let newRows = (source === 'row-increment') ? Math.min(oldRows + 1, 6) :  Math.max(oldRows - 1, 2);
+
+    document.getElementById('row-increment').disabled = (newRows == 6);
+    document.getElementById('row-decrement').disabled = (newRows == 2);
+
+    if (newRows != oldRows) {
+      rowsInput.value = newRows.toString();
+      startNewGame();
+    }
+
+  }
+
+  const handleColChange = (source) => {
     const colsInput = document.getElementById('cols-input');
-    let newRows = parseInt(rowsInput.value);
-    let newCols = parseInt(colsInput.value);
+    let oldCols = parseInt(colsInput.value);
+    let newCols = (source === 'col-increment') ? Math.min(oldCols + 1, 6) : Math.max(oldCols - 1, 2);
 
-    if (source === 'row-increment') {
-        newRows = Math.min(newRows + 1, 6);
-    } else if (source === 'row-decrement') {
-        newRows = Math.max(newRows - 1, 2);
-    }
-    else if (source === 'col-increment') {
-        newCols = Math.min(newCols + 1, 6);
-    }
-     else if (source === 'col-decrement') {
-        newCols = Math.max(newCols - 1, 2);
-    }
+    document.getElementById('col-increment').disabled = (newCols == 6);
+    document.getElementById('col-decrement').disabled = (newCols == 2);
 
-    rowsInput.value = newRows.toString();
-    colsInput.value = newCols.toString();
-
-    startNewGame();
+    if (newCols != oldCols) {
+      colsInput.value = newCols.toString();
+      startNewGame();
+    }
   }
 
   const handleAxleClick = (r, c) => {
@@ -671,9 +655,9 @@ const App = () => {
       newState.setAxle(r, c, rotatedAxle);
       setPuzzleState(newState);
       setMessage("");
-       if (newState.isSolved()) {
-            setMessage("You Win!");
-        }
+      if (newState.isSolved()) {
+        setMessage("You Win!");
+      }
     } else {
       setMessage("Cannot Rotate Axle");
     }
@@ -741,18 +725,20 @@ const App = () => {
     <div id="row-col-inputs">
         <div className="input-group">
             <span>Rows:</span>
-            <button className="spin-button" id="row-decrement" onClick={() => handleInputChange('row-decrement')}>-</button>
-            <input type="number" id="rows-input" value={rows} min="2" max="6" onChange={() => handleInputChange('row')} />
-            <button className="spin-button" id="row-increment" onClick={() => handleInputChange('row-increment')}>+</button>
+            <button className="spin-button" id="row-decrement" onClick={() => handleRowChange('row-decrement')}>-</button>
+            <input type="number" id="rows-input" value={rows} min="2" max="6" readOnly />
+            <button className="spin-button" id="row-increment" onClick={() => handleRowChange('row-increment')}>+</button>
         </div>
         <div className="input-group">
             <span>Cols:</span>
-            <button className="spin-button" id="col-decrement" onClick={() => handleInputChange('col-decrement')}>-</button>
-            <input type="number" id="cols-input" value={cols} min="2" max="6" onChange={() => handleInputChange('col')} />
-            <button className="spin-button" id="col-increment" onClick={() => handleInputChange('col-increment')}>+</button>
+            <button className="spin-button" id="col-decrement" onClick={() => handleColChange('col-decrement')}>-</button>
+            <input type="number" id="cols-input" value={cols} min="2" max="6" readOnly />
+            <button className="spin-button" id="col-increment" onClick={() => handleColChange('col-increment')}>+</button>
         </div>
     </div>
+    <div id="puzzle-box">
     {renderPuzzle()}
+    </div>
     <div id="message-box">{message}</div>
     <div id="game-controls">
     <button id="new-game-button" onClick={startNewGame}>New Game</button>
