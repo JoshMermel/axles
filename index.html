@@ -39,6 +39,11 @@ h1 {
   margin-bottom: 20px;
 }
 
+#help-button {
+  position: relative;
+  float: right; 
+}
+
 .axle-button {
   width: 80px;
   height: 80px;
@@ -53,10 +58,6 @@ h1 {
   background-color: #e0e0e0;
   position: relative;
   padding: 12px;
-}
-
-.axle-rotated {
-  background-color: #b0e0b0;
 }
 
 .axle-blocked {
@@ -124,11 +125,6 @@ h1 {
   z-index: 1;
 }
 
-p {
-  color: #555;
-  margin-bottom: 10px;
-}
-
 #puzzle-box {
   display:grid;
   justify-content: center;
@@ -147,15 +143,12 @@ p {
   padding: 10px 20px;
   border: none;
   border-radius: 5px;
-  background-color: #4CAF50;
+  background-color: #008CBA;
   color: white;
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-}
-
-#new-game-button {
-  background-color: #008CBA;
+  margin-bottom: 10px;
 }
 
 #new-game-button:hover {
@@ -253,7 +246,7 @@ p {
     align-items: center;
     gap: 5px;
 }
-.spin-button {
+.size-button {
     width: 25px;
     height: 25px;
     border-radius: 50%;
@@ -266,21 +259,20 @@ p {
     justify-content: center;
     align-items: center;
     padding: 0;
-    line-height: 0; /* Important for vertical centering */
 }
 
-.spin-button:hover {
+.size-button:hover {
     background-color: #ccc;
 }
 
-.spin-button:disabled {
+.size-button:disabled {
     background-color: #eee;
     color: #aaa;
     cursor: not-allowed;
 }
 
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
+input::-webkit-outer-size-button,
+input::-webkit-inner-size-button {
   -webkit-appearance: none;
   margin: 0;
 }
@@ -375,9 +367,14 @@ class Axle {
   }
 
   rotateRandomly() {
-    const rotations = [this.rotatedClockwise(), this.rotatedCounterClockwise(), this.rotated180()];
-    const randomIndex = Math.floor(Math.random() * rotations.length);
-    return rotations[randomIndex];
+    const choice = Math.floor(Math.random() * 3);
+    if (choice == 0) {
+      return this.rotatedClockwise();
+    } else if (choice == 1) {
+      return this.rotatedCounterClockwise();
+    } else {
+      return this.rotated180();
+    }
   }
 }
 
@@ -543,15 +540,7 @@ class PuzzleState {
   }
 
   isSolved() {
-    for (let r = 0; r < this.rows; r++) {
-      for (let c = 0; c < this.cols; c++) {
-        const axle = this.getAxle(r, c);
-        if (axle.orientation !== 0) {
-          return false;
-        }
-      }
-    }
-    return true;
+    return this.grid.every((axle) => axle.orientation === 0);
   }
 }
 
@@ -575,12 +564,16 @@ function generateRandomState(rows, cols, mode) {
   return puzzle;
 }
 
+function showHelp() {
+  alert("Click squares to rotate them 90 degrees clockwise.\nSquares are blocked if a neighbor's dot points at them.\nDiagonal dots block diagonally\n.You win when all arrows point up.");
+}
+
 const App = () => {
   const [gameMode, setGameMode] = useState('normal');
   const [rows, setRows] = useState(4);
   const [cols, setCols] = useState(4);
   const [puzzleState, setPuzzleState] = useState(generateRandomState(4, 4, 'normal'));
-  const [message, setMessage] = useState("Click squares to rotate them 90 degrees clockwise. Squares are blocked if a neighbor's dot points at them. You win when all arrows point up.");
+  const [message, setMessage] = useState("");
 
   const startNewGame = () => {
     const rowsInput = document.getElementById('rows-input');
@@ -716,36 +709,37 @@ const App = () => {
 
   return (
     <div>
-    <h1>Axle Puzzle</h1>
-    <div id="mode-selection">
-        <button data-mode="easy" onClick={() => handleModeSelect('easy')}>Easy</button>
-        <button className="selected" data-mode="normal" onClick={() => handleModeSelect('normal')}>Normal</button>
-        <button data-mode="hard" onClick={() => handleModeSelect('hard')}>Hard</button>
-    </div>
-    <div id="row-col-inputs">
-        <div className="input-group">
-            <span>Rows:</span>
-            <button className="spin-button" id="row-decrement" onClick={() => handleRowChange('row-decrement')}>-</button>
-            <input type="number" id="rows-input" value={rows} min="2" max="6" readOnly />
-            <button className="spin-button" id="row-increment" onClick={() => handleRowChange('row-increment')}>+</button>
-        </div>
-        <div className="input-group">
-            <span>Cols:</span>
-            <button className="spin-button" id="col-decrement" onClick={() => handleColChange('col-decrement')}>-</button>
-            <input type="number" id="cols-input" value={cols} min="2" max="6" readOnly />
-            <button className="spin-button" id="col-increment" onClick={() => handleColChange('col-increment')}>+</button>
-        </div>
-    </div>
-    <div id="puzzle-box">
-    {renderPuzzle()}
-    </div>
-    <div id="message-box">{message}</div>
-    <div id="game-controls">
-    <button id="new-game-button" onClick={startNewGame}>New Game</button>
-    </div>
-    <div id="footer">
-        Designed by <a href="https://joshmermelstein.com">Josh Mermelstein</a>, Coding by Gemini
-    </div>
+      <button id="help-button" onClick={showHelp}>?</button>
+      <h1>Axle Puzzle</h1>
+      <div id="mode-selection">
+          <button data-mode="easy" onClick={() => handleModeSelect('easy')}>Easy</button>
+          <button className="selected" data-mode="normal" onClick={() => handleModeSelect('normal')}>Normal</button>
+          <button data-mode="hard" onClick={() => handleModeSelect('hard')}>Hard</button>
+      </div>
+      <div id="row-col-inputs">
+          <div className="input-group">
+              <span>Rows:</span>
+              <button className="size-button" id="row-decrement" onClick={() => handleRowChange('row-decrement')}>-</button>
+              <input type="number" id="rows-input" value={rows} min="2" max="6" readOnly />
+              <button className="size-button" id="row-increment" onClick={() => handleRowChange('row-increment')}>+</button>
+          </div>
+          <div className="input-group">
+              <span>Cols:</span>
+              <button className="size-button" id="col-decrement" onClick={() => handleColChange('col-decrement')}>-</button>
+              <input type="number" id="cols-input" value={cols} min="2" max="6" readOnly />
+              <button className="size-button" id="col-increment" onClick={() => handleColChange('col-increment')}>+</button>
+          </div>
+      </div>
+      <div id="puzzle-box">
+        {renderPuzzle()}
+      </div>
+      <div id="message-box">{message}</div>
+      <div id="game-controls">
+        <button id="new-game-button" onClick={startNewGame}>New Game</button>
+      </div>
+      <div id="footer">
+          Designed by <a href="https://joshmermelstein.com">Josh Mermelstein</a>, Coding by Gemini
+      </div>
     </div>
   );
 };
@@ -754,5 +748,4 @@ const container = document.getElementById('app');
 const root = createRoot(container);
 root.render(<App />);
 </script>
-</body>
 </html>
