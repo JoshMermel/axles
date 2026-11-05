@@ -4,11 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Axle Puzzle</title>
+<meta name="description" content="Turn every arrow to point up, but a square can't turn while a neighbor's dot points at it. A logic puzzle on square or hex boards.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-0.7 -0.7 1.4 1.4'%3E%3Crect x='-0.7' y='-0.7' width='1.4' height='1.4' rx='0.25' fill='%23b0e0b0'/%3E%3Cpath d='M0,-0.5 L0.24,-0.12 H0.09 V0.4 H-0.09 V-0.12 H-0.24 Z' fill='%23111'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <style>
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   font-family: 'Roboto', sans-serif;
   display: flex;
@@ -18,6 +24,7 @@ body {
   background-color: #f0f0f0;
   margin: 0;
   padding: 20px;
+  box-sizing: border-box;
 }
 
 #app {
@@ -26,36 +33,69 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
-  width: 90%;
-  max-width: 500px;
+  width: 100%;
+  max-width: 540px;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  box-sizing: content-box;
+  box-sizing: border-box;
 }
 
 h1 {
   color: #333;
-  margin-bottom: 20px;
+  margin: 0 0 20px;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #008CBA;
+  outline-offset: 2px;
+}
+
+/* ---------- Header + help button ---------- */
+
+#header {
+  position: relative;
 }
 
 #help-button {
-  position: relative;
-  float: right; 
-  padding: 10px 15px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: none;
-  border-radius: 5px;
+  border-radius: 50%;
   background-color: #e0e0e0;
   color: #333;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s ease;
+}
+
+#help-button:hover {
+  background-color: #ccc;
+}
+
+/* ---------- Board ---------- */
+
+/* Cells shrink on narrow screens so a 6-wide board never overflows.
+   80px (body padding + app padding) is the horizontal space not available to cells. */
+#puzzle-box {
+  --cell: min(80px, calc((100vw - 80px) / var(--cols, 4)));
+  display: grid;
+  justify-content: center;
+  align-items: center;
+}
+
+.axle-row {
+  display: flex;
 }
 
 .axle-button {
-  width: 80px;
-  height: 80px;
-  font-size: 24px;
+  width: var(--cell, 80px);
+  height: var(--cell, 80px);
   cursor: pointer;
   border: 2px solid black;
   border-radius: 8px;
@@ -65,7 +105,7 @@ h1 {
   box-sizing: border-box;
   background-color: #e0e0e0;
   position: relative;
-  padding: 12px;
+  padding: 0;
 }
 
 .axle-blocked {
@@ -84,60 +124,25 @@ h1 {
   position: absolute;
 }
 
-.dot-up {
-  top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
+.dot-up        { top: 4px;    left: 50%; transform: translateX(-50%); }
+.dot-upright   { top: 4px;    right: 4px; }
+.dot-right     { top: 50%;    right: 4px; transform: translateY(-50%); }
+.dot-downright { bottom: 4px; right: 4px; }
+.dot-down      { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.dot-downleft  { bottom: 4px; left: 4px; }
+.dot-left      { top: 50%;    left: 4px; transform: translateY(-50%); }
+.dot-upleft    { top: 4px;    left: 4px; }
+
+/* The arrow on every cell, square or hex. */
+.arrow-shape { fill: #111; }
+
+.axle-button > svg {
+  width: 68%;
+  height: 68%;
+  pointer-events: none;
 }
 
-.dot-upright {
-  top: 4px;
-  right: 4px;
-}
-
-.dot-right {
-  top: 50%;
-  right: 4px;
-  transform: translateY(-50%);
-}
-
-.dot-downright {
-  bottom: 4px;
-  right: 4px;
-}
-
-.dot-down {
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.dot-downleft {
-  bottom: 4px;
-  left: 4px;
-}
-
-.dot-left {
-  top: 50%;
-  left: 4px;
-  transform: translateY(-50%);
-}
-
-.dot-upleft {
-  top: 4px;
-  left: 4px;
-}
-
-.axle-button > span {
-  position: relative;
-  z-index: 1;
-}
-
-#puzzle-box {
-  display:grid;
-  justify-content: center;
-  align-items: center;
-}
+/* ---------- Controls ---------- */
 
 #game-controls {
   display: flex;
@@ -160,7 +165,7 @@ h1 {
 }
 
 #new-game-button:hover {
-  background-color: #45a049;
+  background-color: #006f94;
 }
 
 #message-box {
@@ -168,39 +173,18 @@ h1 {
   color: #222;
   font-size: 16px;
   padding: 10px;
+  min-height: 1.4em;
   border: 1px solid #ddd;
   border-radius: 5px;
   background-color: #f9f9f9;
 }
 
-#size-selection {
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-}
-
-#size-selection button {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 5px;
-  background-color: #e0e0e0;
-  color: #333;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-#size-selection button:hover {
-  background-color: #ccc;
-}
-
 #row-col-inputs {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 10px 20px;
   margin-bottom: 20px;
 }
 
@@ -250,37 +234,38 @@ h1 {
 }
 
 .input-group {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
+
 .size-button {
-    width: 25px;
-    height: 25px;
-    border-radius: 50%;
-    border: none;
-    background-color: #ddd;
-    color: #333;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  border: none;
+  background-color: #ddd;
+  color: #333;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
 }
 
 .size-button:hover {
-    background-color: #ccc;
+  background-color: #ccc;
 }
 
 .size-button:disabled {
-    background-color: #eee;
-    color: #aaa;
-    cursor: not-allowed;
+  background-color: #eee;
+  color: #aaa;
+  cursor: not-allowed;
 }
 
-input::-webkit-outer-size-button,
-input::-webkit-inner-size-button {
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
@@ -288,32 +273,236 @@ input::-webkit-inner-size-button {
 /* Firefox */
 input[type=number] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
+/* ---------- Board toggle + hex board ---------- */
+
+#grid-selection {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+#grid-selection .label {
+  margin-right: 10px;
+}
+
+#grid-selection button {
+  padding: 6px 14px;
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #333;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+#grid-selection button:first-of-type { border-radius: 6px 0 0 6px; }
+#grid-selection button:last-of-type  { border-radius: 0 6px 6px 0; border-left: none; }
+#grid-selection button:hover { background: #eee; }
+#grid-selection button.selected { background: #333; border-color: #333; color: #fff; }
+
+.cell-count {
+  color: #888;
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+#hex-box {
+  display: flex;
+  justify-content: center;
+}
+
+#hex-box svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.hex { cursor: pointer; outline: none; }
+.hex.static { cursor: default; }
+.hex polygon { stroke: #000; stroke-width: 2; stroke-linejoin: round; }
+.hex.free polygon { fill: #b0e0b0; }
+.hex.blocked polygon { fill: #e0e0e0; }
+.hex:focus-visible polygon { stroke: #008CBA; stroke-width: 4; }
+.hex-dot { fill: #000; }
+
+.help-example svg {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+/* ---------- Help modal (native <dialog>) ---------- */
+
+#help-modal {
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  color: #333;
+  text-align: left;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+#help-modal[open] {
+  animation: modal-in 0.18s ease-out;
+}
+
+#help-modal::backdrop {
+  background: rgba(20, 20, 30, 0.5);
+}
+
+#help-modal[open]::backdrop {
+  animation: backdrop-in 0.18s ease-out;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #help-modal[open],
+  #help-modal[open]::backdrop {
+    animation: none;
+  }
+}
+
+.modal-content {
+  padding: 24px 24px 20px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+#help-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #eee;
+  color: #333;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#help-close:hover {
+  background: #ddd;
+}
+
+.help-goal {
+  margin: 0 0 16px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.help-rules {
+  margin: 0 0 18px;
+  padding-left: 20px;
+  line-height: 1.5;
+}
+
+.help-rules li {
+  margin-bottom: 8px;
+}
+
+.help-example {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f6f6f6;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.help-example .axle-row {
+  --cell: 56px;
+  flex-shrink: 0;
+}
+
+.help-example .axle-button {
+  cursor: default;
+}
+
+.help-example p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #555;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  border: 1.5px solid black;
+  border-radius: 3px;
+  vertical-align: -0.1em;
+}
+
+.legend-swatch.free    { background: #b0e0b0; }
+.legend-swatch.blocked { background: #e0e0e0; }
+
+#help-ok {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background-color: #008CBA;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#help-ok:hover {
+  background-color: #006f94;
+}
 </style>
 </head>
 <body>
-  <StrictMode>
   <div id="app"></div>
-  </StrictMode>
-</body>
 
 <script type="text/babel">
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 const { createRoot } = ReactDOM;
 
-const Direction = {
-  Up: 0,
-  UpRight: 1,
-  Right: 2,
-  DownRight: 3,
-  Down: 4,
-  DownLeft: 5,
-  Left: 6,
-  UpLeft: 7,
-};
+const HELP_SEEN_KEY = 'axle-puzzle-help-seen';
+const MIN_SIZE = 2;
+const MAX_SIZE = 6;
 
-const OrientationSymbols = ["↑", "→", "↓", "←"];
+// [name, dr, dc] for each direction, clockwise from straight up. These are the
+// indices into Axle.blocks; opposite directions are always 4 apart.
+const DIRECTION_INFO = [
+  ['up',        -1,  0],
+  ['upright',   -1,  1],
+  ['right',      0,  1],
+  ['downright',  1,  1],
+  ['down',       1,  0],
+  ['downleft',   1, -1],
+  ['left',       0, -1],
+  ['upleft',    -1, -1],
+];
 
 class Axle {
   constructor(orientation, blocks) {
@@ -321,68 +510,25 @@ class Axle {
     this.blocks = blocks;
   }
 
-  rotatedClockwise() {
-    const newOrientation = (this.orientation + 1) % 4;
-    const newBlocks = [
-      this.blocks[Direction.Left],
-      this.blocks[Direction.UpLeft],
-      this.blocks[Direction.Up],
-      this.blocks[Direction.UpRight],
-      this.blocks[Direction.Right],
-      this.blocks[Direction.DownRight],
-      this.blocks[Direction.Down],
-      this.blocks[Direction.DownLeft],
-    ];
-    return new Axle(newOrientation, newBlocks);
+  // Turning clockwise by `steps` quarter turns moves the dot at direction d
+  // to direction (d + 2*steps) % 8.
+  rotated(steps) {
+    const shift = 2 * steps;
+    const newBlocks = new Array(8);
+    for (let d = 0; d < 8; d++) {
+      newBlocks[(d + shift) % 8] = this.blocks[d];
+    }
+    return new Axle((this.orientation + steps) % 4, newBlocks);
   }
 
-  rotatedCounterClockwise() {
-    const newOrientation = (this.orientation + 3) % 4;
-    const newBlocks = [
-      this.blocks[Direction.Right],
-      this.blocks[Direction.DownRight],
-      this.blocks[Direction.Down],
-      this.blocks[Direction.DownLeft],
-      this.blocks[Direction.Left],
-      this.blocks[Direction.UpLeft],
-      this.blocks[Direction.Up],
-      this.blocks[Direction.UpRight],
-    ];
-    return new Axle(newOrientation, newBlocks);
-  }
-
-  rotated180() {
-    const newOrientation = (this.orientation + 2) % 4;
-    const newBlocks = [
-      this.blocks[Direction.Down],
-      this.blocks[Direction.DownLeft],
-      this.blocks[Direction.Left],
-      this.blocks[Direction.UpLeft],
-      this.blocks[Direction.Up],
-      this.blocks[Direction.UpRight],
-      this.blocks[Direction.Right],
-      this.blocks[Direction.DownRight],
-    ];
-    return new Axle(newOrientation, newBlocks);
-  }
+  rotatedClockwise() { return this.rotated(1); }
 
   blocksDirection(direction) {
     return this.blocks[direction];
   }
 
-  toString() {
-    return OrientationSymbols[this.orientation];
-  }
-
   rotateRandomly() {
-    const choice = Math.floor(Math.random() * 3);
-    if (choice == 0) {
-      return this.rotatedClockwise();
-    } else if (choice == 1) {
-      return this.rotatedCounterClockwise();
-    } else {
-      return this.rotated180();
-    }
+    return this.rotated(1 + Math.floor(Math.random() * 3));
   }
 }
 
@@ -398,13 +544,14 @@ class TopoWeight {
         this.cardinal_probability = 0.4;
         this.diagonal_probability = 0;
         break;
-      case 'normal':
-        this.cardinal_probability = 0.75;
-        this.diagonal_probability = 0;
-        break;
       case 'hard':
         this.cardinal_probability = 0.6;
         this.diagonal_probability = 0.35;
+        break;
+      case 'normal':
+      default:
+        this.cardinal_probability = 0.75;
+        this.diagonal_probability = 0;
         break;
     }
     this.oob = rows * cols / 4;
@@ -440,6 +587,7 @@ class TopoWeight {
         this.shouldBlock(r, c, r+1, c, this.cardinal_probability),
         this.shouldBlock(r, c, r, c-1, this.cardinal_probability),
     ];
+    // A fully-symmetric axle would look identical after any rotation.
     if (cardinals.every(v => v === true)) {
       cardinals[0] = false;
     }
@@ -470,45 +618,27 @@ class PuzzleState {
     this.grid = grid;
   }
 
+  inBounds(r, c) {
+    return r >= 0 && r < this.rows && c >= 0 && c < this.cols;
+  }
+
   getAxle(r, c) {
-    if (r < this.rows && c < this.cols) {
-      return this.grid[r * this.cols + c];
-    }
-    return null;
+    return this.inBounds(r, c) ? this.grid[r * this.cols + c] : null;
   }
 
   setAxle(r, c, axle) {
-    if (r < this.rows && c < this.cols) {
+    if (this.inBounds(r, c)) {
       this.grid[r * this.cols + c] = axle;
     }
   }
 
+  // An axle can turn unless some neighbor has a dot pointing at it.
   canRotate(r, c) {
-    const directions = [
-      Direction.Up,
-      Direction.UpRight,
-      Direction.Right,
-      Direction.DownRight,
-      Direction.Down,
-      Direction.DownLeft,
-      Direction.Left,
-      Direction.UpLeft];
-    const drs = [-1, -1, 0, 1, 1,  1,  0, -1];
-    const dcs = [ 0,  1, 1, 1, 0, -1, -1, -1];
-
-    for (let i = 0; i < directions.length; i++) {
-      const direction = directions[i];
-      const dr = drs[i];
-      const dc = dcs[i];
-      const nr = r + dr;
-      const nc = c + dc;
-
-      if (nr >= 0 && nr < this.rows && nc >= 0 && nc < this.cols) {
-        const neighborAxle = this.getAxle(nr, nc);
-        const oppositeDirection = (direction + 4) % 8;
-        if (neighborAxle.blocksDirection(oppositeDirection)) {
-          return false;
-        }
+    for (let d = 0; d < 8; d++) {
+      const nr = r + DIRECTION_INFO[d][1];
+      const nc = c + DIRECTION_INFO[d][2];
+      if (this.inBounds(nr, nc) && this.getAxle(nr, nc).blocksDirection((d + 4) % 8)) {
+        return false;
       }
     }
     return true;
@@ -526,19 +656,17 @@ class PuzzleState {
     return rotatableAxles;
   }
 
+  // Random walk of legal moves. Every move is reversible (an axle's
+  // blockedness depends only on its neighbors, which a move doesn't change),
+  // so any state reached this way can be solved by undoing the walk.
   shuffle() {
     for (let i = 0; i < 100 * this.rows * this.cols; i++) {
-      let rotatableAxles = this.getRotatableAxles();
-      if (rotatableAxles.lengh == 0) {
+      const rotatableAxles = this.getRotatableAxles();
+      if (rotatableAxles.length === 0) {
         return;
       }
-      const randomIndex = Math.floor(Math.random() * rotatableAxles.length);
-      const { row, col } = rotatableAxles[randomIndex];
-      let axle = this.getAxle(row, col);
-      if (axle) {
-        axle = axle.rotateRandomly();
-        this.setAxle(row, col, axle);
-       }
+      const { row, col } = rotatableAxles[Math.floor(Math.random() * rotatableAxles.length)];
+      this.setAxle(row, col, this.getAxle(row, col).rotateRandomly());
     }
   }
 
@@ -552,208 +680,545 @@ class PuzzleState {
   }
 }
 
-// TODO(jmerm): figure out why this is called on every click.
 function generateRandomState(rows, cols, mode) {
-  let topo_weights = new TopoWeight(rows, cols, mode);
-  const grid = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      grid.push(new Axle(0, topo_weights.blockers(r,c)));
+  for (;;) {
+    const topo_weights = new TopoWeight(rows, cols, mode);
+    const grid = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        grid.push(new Axle(0, topo_weights.blockers(r, c)));
+      }
+    }
+    const puzzle = new PuzzleState(rows, cols, grid);
+
+    // The first shuffle scrambles the dot pattern so the solved position isn't
+    // the (acyclic) one we generated; then we declare the scrambled pattern
+    // "solved" by zeroing orientations, and shuffle again to make the puzzle.
+    puzzle.shuffle();
+    for (const axle of puzzle.grid) {
+      axle.orientation = 0;
+    }
+    puzzle.shuffle();
+
+    if (!puzzle.isSolved()) {
+      return puzzle;
     }
   }
-  const puzzle = new PuzzleState(rows, cols, grid);
-  puzzle.shuffle();
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      puzzle.getAxle(r,c).orientation = 0;
-    }
-  }
-  puzzle.shuffle();
-  return puzzle;
 }
 
-function showHelp() {
-  alert("Click squares to rotate them 90 degrees clockwise.\nSquares are blocked if a neighbor's dot points at them.\nDiagonal dots block diagonally.\nYou win when all arrows point up.");
+// ---------- Hex grid ----------
+// Flat-top hexes in axial coordinates (q = column, r = row slanting down-right).
+// Direction i points 60*i degrees clockwise from straight up, so an arrow with
+// orientation 0 points at the top edge, orientation 1 at the upper-right edge...
+//                       N       NE      SE      S       SW      NW
+const HEX_DIRS = [[0, -1], [1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0]];
+const HEX_SIDES = 6;
+const hexOpposite = (d) => (d + 3) % HEX_SIDES;
+
+const MIN_RADIUS = 1;
+const MAX_RADIUS = 3;
+const DEFAULT_RADIUS = 2;
+const hexCellCount = (radius) => 3 * radius * (radius + 1) + 1;
+
+// Per-direction chance of a dot (only toward lower-weight neighbors). Tuned so
+// the share of free cells roughly matches the square grid: ~55% / ~34% / ~30%.
+const HEX_MODE_PROBABILITY = { easy: 0.25, normal: 0.5, hard: 0.6 };
+
+class HexAxle {
+  constructor(orientation, blocks) {
+    this.orientation = orientation;
+    this.blocks = blocks;
+  }
+
+  // Turning clockwise by `steps` sixths of a turn moves the dot at direction d
+  // to direction (d + steps) % 6.
+  rotated(steps) {
+    const newBlocks = new Array(HEX_SIDES);
+    for (let d = 0; d < HEX_SIDES; d++) {
+      newBlocks[(d + steps) % HEX_SIDES] = this.blocks[d];
+    }
+    return new HexAxle((this.orientation + steps) % HEX_SIDES, newBlocks);
+  }
+
+  rotatedClockwise() { return this.rotated(1); }
+
+  rotateRandomly() {
+    return this.rotated(1 + Math.floor(Math.random() * (HEX_SIDES - 1)));
+  }
+}
+
+// A hexagon-shaped board with `radius` rings around the center cell.
+class HexBoard {
+  constructor(radius, grid) {
+    this.radius = radius;
+    this.cells = [];          // [{q, r}] in a stable order
+    this.index = new Map();   // "q,r" -> position in this.cells
+    for (let r = -radius; r <= radius; r++) {
+      for (let q = -radius; q <= radius; q++) {
+        if (Math.abs(q + r) <= radius) {
+          this.index.set(`${q},${r}`, this.cells.length);
+          this.cells.push({ q, r });
+        }
+      }
+    }
+    this.grid = grid;
+  }
+
+  // Index of the neighbor of cell i in direction d, or -1 if off the board.
+  neighbor(i, d) {
+    const { q, r } = this.cells[i];
+    const n = this.index.get(`${q + HEX_DIRS[d][0]},${r + HEX_DIRS[d][1]}`);
+    return n === undefined ? -1 : n;
+  }
+
+  // An axle can turn unless some neighbor has a dot pointing at it.
+  canRotate(i) {
+    for (let d = 0; d < HEX_SIDES; d++) {
+      const n = this.neighbor(i, d);
+      if (n >= 0 && this.grid[n].blocks[hexOpposite(d)]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Random walk of legal moves. Moves are reversible (blockedness of an axle
+  // depends only on its neighbors), so every state reached is solvable.
+  shuffle() {
+    for (let step = 0; step < 100 * this.cells.length; step++) {
+      const movable = [];
+      for (let i = 0; i < this.cells.length; i++) {
+        if (this.canRotate(i)) movable.push(i);
+      }
+      if (movable.length === 0) return;
+      const i = movable[Math.floor(Math.random() * movable.length)];
+      this.grid[i] = this.grid[i].rotateRandomly();
+    }
+  }
+
+  clone() {
+    return new HexBoard(this.radius, this.grid.map(a => new HexAxle(a.orientation, [...a.blocks])));
+  }
+
+  isSolved() {
+    return this.grid.every(a => a.orientation === 0);
+  }
+}
+
+// Random dots such that blocking can't form a cycle: each cell gets a unique
+// random weight and may only block neighbors of lower weight.
+function randomHexBlocks(board, mode) {
+  const n = board.cells.length;
+  const weight = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [weight[i], weight[j]] = [weight[j], weight[i]];
+  }
+  const oob = n / 4;  // off-board targets never cause cycles; don't use them too much
+  const p = HEX_MODE_PROBABILITY[mode] ?? HEX_MODE_PROBABILITY.normal;
+
+  return board.cells.map((_, i) => {
+    const blocks = [];
+    for (let d = 0; d < HEX_SIDES; d++) {
+      const nb = board.neighbor(i, d);
+      const target = nb >= 0 ? weight[nb] : oob;
+      blocks.push(weight[i] >= target && Math.random() < p);
+    }
+    // A fully-symmetric axle would look the same after any turn.
+    if (blocks.every(b => b)) blocks[0] = false;
+    return new HexAxle(0, blocks);
+  });
+}
+
+function generateHexState(radius, mode) {
+  for (;;) {
+    const board = new HexBoard(radius, []);
+    board.grid = randomHexBlocks(board, mode);
+
+    // Same two-step scramble as the square grid (see generateRandomState).
+    board.shuffle();
+    for (const axle of board.grid) axle.orientation = 0;
+    board.shuffle();
+
+    if (!board.isSolved()) return board;
+  }
+}
+
+// ---------- UI ----------
+
+// ---------- Arrow (shared by both boards) ----------
+
+// An arrow pointing straight up, in unit coordinates centered on the origin.
+const ARROW_UNIT_PATH = 'M0,-0.5 L0.24,-0.12 H0.09 V0.4 H-0.09 V-0.12 H-0.24 Z';
+
+// Square-board arrow: an SVG that fills the cell's content area and turns in
+// 90-degree steps. (Hex cells draw the same path directly; see HexCell.)
+function SquareArrow({ orientation }) {
+  return (
+    <svg viewBox="-0.6 -0.6 1.2 1.2" aria-hidden="true">
+      <path className="arrow-shape" d={ARROW_UNIT_PATH} transform={`rotate(${orientation * 90})`} />
+    </svg>
+  );
+}
+
+// ---------- Hex rendering ----------
+
+const HEX_S = 40;            // hex circumradius in SVG units
+const HEX_GAP = 0.94;        // draw hexes slightly smaller than the cell for a gutter
+const SQRT3 = Math.sqrt(3);
+
+const HEX_POINTS = [0, 1, 2, 3, 4, 5]
+  .map(k => [HEX_S * HEX_GAP * Math.cos(k * Math.PI / 3), HEX_S * HEX_GAP * Math.sin(k * Math.PI / 3)].join(','))
+  .join(' ');
+
+const HEX_DOT_DISTANCE = SQRT3 / 2 * HEX_S * 0.8;  // center to each dot
+const HEX_DOT_POSITIONS = [0, 1, 2, 3, 4, 5].map(d => [
+  HEX_DOT_DISTANCE * Math.sin(d * Math.PI / 3),
+  -HEX_DOT_DISTANCE * Math.cos(d * Math.PI / 3),
+]);
+
+function hexCenter({ q, r }) {
+  return [1.5 * HEX_S * q, SQRT3 * HEX_S * (r + q / 2)];
+}
+
+// SVG viewBox string tightly enclosing the given cells, plus its width.
+function hexViewBox(cells) {
+  const centers = cells.map(hexCenter);
+  const pad = 4;
+  const minX = Math.min(...centers.map(c => c[0])) - HEX_S - pad;
+  const maxX = Math.max(...centers.map(c => c[0])) + HEX_S + pad;
+  const minY = Math.min(...centers.map(c => c[1])) - SQRT3 / 2 * HEX_S - pad;
+  const maxY = Math.max(...centers.map(c => c[1])) + SQRT3 / 2 * HEX_S + pad;
+  return { viewBox: `${minX} ${minY} ${maxX - minX} ${maxY - minY}`, width: maxX - minX };
+}
+
+// `onClick` omitted => purely decorative (used in the help example).
+function HexCell({ cell, axle, free, label, onClick }) {
+  const [cx, cy] = hexCenter(cell);
+  const interactive = !!onClick;
+  return (
+    <g
+      className={`hex ${free ? 'free' : 'blocked'}${interactive ? '' : ' static'}`}
+      transform={`translate(${cx},${cy})`}
+      {...(interactive ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': label,
+        onClick,
+        onKeyDown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
+        },
+      } : { 'aria-hidden': true })}
+    >
+      <polygon points={HEX_POINTS} />
+      <path className="arrow-shape" d={ARROW_UNIT_PATH} transform={`rotate(${axle.orientation * 60}) scale(${HEX_S})`} />
+      {axle.blocks.map((blocked, d) =>
+        blocked ? <circle key={d} className="hex-dot" cx={HEX_DOT_POSITIONS[d][0]} cy={HEX_DOT_POSITIONS[d][1]} r={3.5} /> : null
+      )}
+    </g>
+  );
+}
+
+function HexBoardView({ board, onCellClick }) {
+  const { viewBox, width } = hexViewBox(board.cells);
+  return (
+    <div id="hex-box">
+      <svg viewBox={viewBox} style={{ maxWidth: Math.min(width * 1.4, 520) }}>
+        {board.cells.map((cell, i) => {
+          const free = board.canRotate(i);
+          return (
+            <HexCell
+              key={i}
+              cell={cell}
+              axle={board.grid[i]}
+              free={free}
+              onClick={() => onCellClick(i)}
+              label={`Cell ${i + 1}${free ? '' : ', blocked'}`}
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// Two hexes: the upper-left one has a dot pointing at its lower-right neighbor.
+const HELP_HEX_CELLS = [{ q: 0, r: 0 }, { q: 1, r: 0 }];
+function HexHelpExample() {
+  const { viewBox } = hexViewBox(HELP_HEX_CELLS);
+  const blocker = new HexAxle(0, [false, false, true, false, false, false]);
+  const blocked = new HexAxle(0, [false, false, false, false, false, false]);
+  return (
+    <svg viewBox={viewBox} aria-hidden="true">
+      <HexCell cell={HELP_HEX_CELLS[0]} axle={blocker} free={true} />
+      <HexCell cell={HELP_HEX_CELLS[1]} axle={blocked} free={false} />
+    </svg>
+  );
+}
+
+// Uses the native <dialog> element: showModal() gives us the backdrop, Esc to
+// close, focus trapping, and focus restoration for free.
+function HelpModal({ open, onClose, grid }) {
+  const hex = grid === 'hex';
+  const shape = hex ? 'hex' : 'square';
+  const shapes = hex ? 'hexes' : 'squares';
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (open && !dialog.open) {
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+
+  return (
+    <dialog
+      id="help-modal"
+      ref={dialogRef}
+      aria-labelledby="help-title"
+      onClose={onClose}
+      // Clicks on the backdrop land on the <dialog> element itself.
+      onClick={(e) => { if (e.target === dialogRef.current) onClose(); }}
+    >
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2 id="help-title">How to play</h2>
+          <button id="help-close" aria-label="Close help" onClick={onClose}>×</button>
+        </div>
+
+        <p className="help-goal">
+          Turn every arrow so it points <strong>straight up</strong>.
+        </p>
+
+        <ul className="help-rules">
+          <li>Tap a {shape} to rotate it {hex ? '60°' : '90°'} clockwise.</li>
+          <li>
+            A dot on a {shape}'s edge <strong>blocks</strong> the neighbor it
+            points at. Blocked {shapes} (<span className="legend-swatch blocked"></span> grey)
+            can't turn; free {shapes} (<span className="legend-swatch free"></span> green) can.
+          </li>
+          <li>Dots turn along with their {shape}, so turning one {shape} can free up — or block — others.</li>
+          {hex
+            ? <li>Harder modes just add more dots.</li>
+            : <li>In <strong>Hard</strong> mode, corner dots block diagonal neighbors too.</li>}
+        </ul>
+
+        <div className="help-example">
+          {hex ? (
+            <HexHelpExample />
+          ) : (
+            <div className="axle-row" aria-hidden="true">
+              <div className="axle-button axle-unblocked">
+                <SquareArrow orientation={0} />
+                <div className="dot dot-right"></div>
+              </div>
+              <div className="axle-button axle-blocked">
+                <SquareArrow orientation={0} />
+              </div>
+            </div>
+          )}
+          <p>
+            {hex
+              ? 'The dot on the upper-left hex points at its lower-right neighbor, so that hex is stuck until the first one turns.'
+              : 'The dot on the left square points at its right neighbor, so the right square is stuck until the left one turns.'}
+          </p>
+        </div>
+
+        <button id="help-ok" onClick={onClose}>Got it</button>
+      </div>
+    </dialog>
+  );
+}
+
+// ---------- App ----------
+
+function AxleCell({ axle, free, onClick, label }) {
+  return (
+    <button
+      className={`axle-button ${free ? 'axle-unblocked' : 'axle-blocked'}`}
+      onClick={onClick}
+      aria-label={label}
+    >
+      <SquareArrow orientation={axle.orientation} />
+      {DIRECTION_INFO.map(([name], d) =>
+        axle.blocksDirection(d) ? <div key={name} className={`dot dot-${name}`}></div> : null
+      )}
+    </button>
+  );
+}
+
+const MODES = [
+  ['easy', 'Easy'],
+  ['normal', 'Normal'],
+  ['hard', 'Hard'],
+];
+
+const GRIDS = [
+  ['square', 'Square'],
+  ['hex', 'Hex'],
+];
+
+function SizeControl({ label, value, min, max, onChange, suffix }) {
+  const noun = label.toLowerCase();
+  return (
+    <div className="input-group">
+      <span>{label}:</span>
+      <button className="size-button" aria-label={`Decrease ${noun}`}
+              disabled={value <= min} onClick={() => onChange(value - 1)}>-</button>
+      <input type="number" value={value} min={min} max={max} readOnly aria-label={label} />
+      <button className="size-button" aria-label={`Increase ${noun}`}
+              disabled={value >= max} onClick={() => onChange(value + 1)}>+</button>
+      {suffix && <span className="cell-count">{suffix}</span>}
+    </div>
+  );
 }
 
 const App = () => {
-  const [gameMode, setGameMode] = useState('normal');
+  const [grid, setGrid] = useState('square');
+  const [mode, setMode] = useState('normal');
   const [rows, setRows] = useState(4);
   const [cols, setCols] = useState(4);
-  const [puzzleState, setPuzzleState] = useState(generateRandomState(4, 4, 'normal'));
+  const [radius, setRadius] = useState(DEFAULT_RADIUS);
+  // Lazy initializer: without the arrow, a whole new puzzle was generated (and
+  // thrown away) on every render.
+  const [puzzleState, setPuzzleState] = useState(() => generateRandomState(4, 4, 'normal'));
   const [message, setMessage] = useState("");
+  // Show the help on a player's first visit. The flag is written as soon as the
+  // modal is shown, so a reload doesn't nag. If storage is unavailable (private
+  // browsing etc.) we skip the auto-show rather than show it on every load.
+  const [helpOpen, setHelpOpen] = useState(() => {
+    try {
+      if (localStorage.getItem(HELP_SEEN_KEY)) return false;
+      localStorage.setItem(HELP_SEEN_KEY, '1');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  });
 
-  const startNewGame = () => {
-    const rowsInput = document.getElementById('rows-input');
-    const colsInput = document.getElementById('cols-input');
-    const newRows = parseInt(rowsInput.value);
-    const newCols = parseInt(colsInput.value);
-    const modeButtons = document.querySelectorAll('#mode-selection button');
-    let mode = 'normal';
-    modeButtons.forEach(button => {
-      if (button.classList.contains('selected')) {
-        mode = button.dataset.mode;
-      }
-    });
-    if(newRows >=2 && newRows <=6 && newCols >= 2 && newCols <=6){
-      setRows(newRows);
-      setCols(newCols);
-      const newState = generateRandomState(newRows, newCols, mode);
-      setPuzzleState(newState);
-      setMessage("New Game Started!");
-    }
-    else{
-      setMessage("Rows and Cols must be between 2 and 6.");
-    }
+  // Starts a new game, optionally changing one or more settings.
+  const startNewGame = (changes = {}) => {
+    const next = { grid, mode, rows, cols, radius, ...changes };
+    setGrid(next.grid);
+    setMode(next.mode);
+    setRows(next.rows);
+    setCols(next.cols);
+    setRadius(next.radius);
+    setPuzzleState(next.grid === 'hex'
+      ? generateHexState(next.radius, next.mode)
+      : generateRandomState(next.rows, next.cols, next.mode));
+    setMessage("New Game Started!");
   };
 
-  const handleModeSelect = (mode) => {
-    setGameMode(mode);
-    const buttons = document.querySelectorAll('#mode-selection button');
-    buttons.forEach(button => {
-      button.classList.remove('selected');
-      if (button.dataset.mode === mode) {
-        button.classList.add('selected');
-      }
-    });
-    startNewGame();
-  }
-
-  const handleRowChange = (source) => {
-    const rowsInput = document.getElementById('rows-input');
-    let oldRows = parseInt(rowsInput.value);
-    let newRows = (source === 'row-increment') ? Math.min(oldRows + 1, 6) :  Math.max(oldRows - 1, 2);
-
-    document.getElementById('row-increment').disabled = (newRows == 6);
-    document.getElementById('row-decrement').disabled = (newRows == 2);
-
-    if (newRows != oldRows) {
-      rowsInput.value = newRows.toString();
-      startNewGame();
-    }
-
-  }
-
-  const handleColChange = (source) => {
-    const colsInput = document.getElementById('cols-input');
-    let oldCols = parseInt(colsInput.value);
-    let newCols = (source === 'col-increment') ? Math.min(oldCols + 1, 6) : Math.max(oldCols - 1, 2);
-
-    document.getElementById('col-increment').disabled = (newCols == 6);
-    document.getElementById('col-decrement').disabled = (newCols == 2);
-
-    if (newCols != oldCols) {
-      colsInput.value = newCols.toString();
-      startNewGame();
-    }
-  }
+  const applyMove = (newState) => {
+    setPuzzleState(newState);
+    setMessage(newState.isSolved() ? "You Win!" : "");
+  };
 
   const handleAxleClick = (r, c) => {
     const newState = puzzleState.clone();
     if (newState.canRotate(r, c)) {
-      const currentAxle = newState.getAxle(r, c);
-      const rotatedAxle = currentAxle.rotatedClockwise();
-      newState.setAxle(r, c, rotatedAxle);
-      setPuzzleState(newState);
-      setMessage("");
-      if (newState.isSolved()) {
-        setMessage("You Win!");
-      }
+      newState.setAxle(r, c, newState.getAxle(r, c).rotatedClockwise());
+      applyMove(newState);
     } else {
       setMessage("Cannot Rotate Axle");
     }
   };
 
-  const renderPuzzle = () => {
-    const grid = [];
-    for (let r = 0; r < puzzleState.rows; r++) {
-      const row = [];
-      for (let c = 0; c < puzzleState.cols; c++) {
-        const axle = puzzleState.getAxle(r, c);
-        const buttonClass = `axle-button ${puzzleState.canRotate(r, c) ? 'axle-unblocked' : 'axle-blocked'}`;
-
-        const dots = [];
-        if (axle.blocksDirection(Direction.Up)) {
-          dots.push(<div key={`dot-up-${r}-${c}`} className="dot dot-up"></div>);
-        }
-        if (axle.blocksDirection(Direction.UpRight)) {
-          dots.push(<div key={`dot-upright-${r}-${c}`} className="dot dot-upright"></div>);
-        }
-        if (axle.blocksDirection(Direction.Right)) {
-          dots.push(<div key={`dot-right-${r}-${c}`} className="dot dot-right"></div>);
-        }
-        if (axle.blocksDirection(Direction.DownRight)) {
-          dots.push(<div key={`dot-downright-${r}-${c}`} className="dot dot-downright"></div>);
-        }
-        if (axle.blocksDirection(Direction.Down)) {
-          dots.push(<div key={`dot-down-${r}-${c}`} className="dot dot-down"></div>);
-        }
-        if (axle.blocksDirection(Direction.DownLeft)) {
-          dots.push(<div key={`dot-downleft-${r}-${c}`} className="dot dot-downleft"></div>);
-        }
-        if (axle.blocksDirection(Direction.Left)) {
-          dots.push(<div key={`dot-left-${r}-${c}`} className="dot dot-left"></div>);
-        }
-        if (axle.blocksDirection(Direction.UpLeft)) {
-          dots.push(<div key={`dot-upleft-${r}-${c}`} className="dot dot-upleft"></div>);
-        }
-
-        row.push(
-          <button
-          key={`${r}-${c}`}
-          className={buttonClass}
-          onClick={() => handleAxleClick(r, c)}
-
-          >
-          <span>{axle.toString()}</span>
-          {dots}
-          </button>
-        );
-      }
-      grid.push(<div key={`row-${r}`} style={{ display: 'flex' }}>{row}</div>);
+  const handleHexClick = (i) => {
+    const newState = puzzleState.clone();
+    if (newState.canRotate(i)) {
+      newState.grid[i] = newState.grid[i].rotatedClockwise();
+      applyMove(newState);
+    } else {
+      setMessage("Cannot Rotate Axle");
     }
-    return grid;
   };
+
+  const closeHelp = () => setHelpOpen(false);
 
   return (
     <div>
-      <button id="help-button" onClick={showHelp}>?</button>
-      <h1>Axle Puzzle</h1>
+      <div id="header">
+        <h1>Axle Puzzle</h1>
+        <button id="help-button" aria-label="How to play" onClick={() => setHelpOpen(true)}>?</button>
+      </div>
       <div id="mode-selection">
-          <button data-mode="easy" onClick={() => handleModeSelect('easy')}>Easy</button>
-          <button className="selected" data-mode="normal" onClick={() => handleModeSelect('normal')}>Normal</button>
-          <button data-mode="hard" onClick={() => handleModeSelect('hard')}>Hard</button>
+        {MODES.map(([m, label]) => (
+          <button
+            key={m}
+            className={m === mode ? 'selected' : ''}
+            aria-pressed={m === mode}
+            onClick={() => startNewGame({ mode: m })}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div id="grid-selection" role="group" aria-label="Board shape">
+        <span className="label">Board:</span>
+        {GRIDS.map(([g, label]) => (
+          <button
+            key={g}
+            className={g === grid ? 'selected' : ''}
+            aria-pressed={g === grid}
+            onClick={() => { if (g !== grid) startNewGame({ grid: g }); }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
       <div id="row-col-inputs">
-          <div className="input-group">
-              <span>Rows:</span>
-              <button className="size-button" id="row-decrement" onClick={() => handleRowChange('row-decrement')}>-</button>
-              <input type="number" id="rows-input" value={rows} min="2" max="6" readOnly />
-              <button className="size-button" id="row-increment" onClick={() => handleRowChange('row-increment')}>+</button>
-          </div>
-          <div className="input-group">
-              <span>Cols:</span>
-              <button className="size-button" id="col-decrement" onClick={() => handleColChange('col-decrement')}>-</button>
-              <input type="number" id="cols-input" value={cols} min="2" max="6" readOnly />
-              <button className="size-button" id="col-increment" onClick={() => handleColChange('col-increment')}>+</button>
-          </div>
+        {grid === 'hex' ? (
+          <SizeControl label="Size" value={radius} min={MIN_RADIUS} max={MAX_RADIUS}
+                       suffix={`${hexCellCount(radius)} cells`}
+                       onChange={(n) => startNewGame({ radius: n })} />
+        ) : (
+          <>
+            <SizeControl label="Rows" value={rows} min={MIN_SIZE} max={MAX_SIZE}
+                         onChange={(n) => startNewGame({ rows: n })} />
+            <SizeControl label="Cols" value={cols} min={MIN_SIZE} max={MAX_SIZE}
+                         onChange={(n) => startNewGame({ cols: n })} />
+          </>
+        )}
       </div>
-      <div id="puzzle-box">
-        {renderPuzzle()}
-      </div>
-      <div id="message-box">{message}</div>
+      {puzzleState instanceof HexBoard ? (
+        <HexBoardView board={puzzleState} onCellClick={handleHexClick} />
+      ) : (
+        <div id="puzzle-box" style={{ '--cols': puzzleState.cols }}>
+          {Array.from({ length: puzzleState.rows }, (_, r) => (
+            <div className="axle-row" key={r}>
+              {Array.from({ length: puzzleState.cols }, (_, c) => {
+                const free = puzzleState.canRotate(r, c);
+                return (
+                  <AxleCell
+                    key={c}
+                    axle={puzzleState.getAxle(r, c)}
+                    free={free}
+                    onClick={() => handleAxleClick(r, c)}
+                    label={`Row ${r + 1}, column ${c + 1}${free ? '' : ', blocked'}`}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+      <div id="message-box" role="status" aria-live="polite">{message}</div>
       <div id="game-controls">
-        <button id="new-game-button" onClick={startNewGame}>New Game</button>
+        <button id="new-game-button" onClick={() => startNewGame()}>New Game</button>
       </div>
       <div id="footer">
           Designed by <a href="https://joshmermelstein.com">Josh Mermelstein</a>, Coding by Gemini
       </div>
+      <HelpModal open={helpOpen} onClose={closeHelp} grid={grid} />
     </div>
   );
 };
 
-const container = document.getElementById('app');
-const root = createRoot(container);
-root.render(<App />);
+createRoot(document.getElementById('app')).render(<App />);
 </script>
+</body>
 </html>
